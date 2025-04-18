@@ -36,7 +36,8 @@ def open_latest_result():
     try:
         latest_file = max(result_files, key=lambda f: os.path.getmtime(
             os.path.join(app_state.loaded_file_directory, f)))
-        webbrowser.open(os.path.join(app_state.loaded_file_directory, latest_file))
+        webbrowser.open(os.path.join(
+            app_state.loaded_file_directory, latest_file))
         messagebox.showinfo("Éxito", f"Abriendo archivo: {latest_file}")
     except FileNotFoundError as e:
         messagebox.showerror("Error", f"Archivo no encontrado: {e}")
@@ -50,7 +51,8 @@ def select_file():
         filetypes=[("Archivos de Excel", "*.xlsx;*.xls")]
     )
     if not file_path:
-        messagebox.showwarning("Advertencia", "No se seleccionó ningún archivo.")
+        messagebox.showwarning(
+            "Advertencia", "No se seleccionó ningún archivo.")
         return
 
     if not os.path.exists(file_path):
@@ -97,9 +99,11 @@ def create_main_window():
         try:
             root.iconbitmap(icon_path)
         except Exception as e:
-            messagebox.showwarning("Advertencia", f"No se pudo cargar el ícono: {e}")
+            messagebox.showwarning(
+                "Advertencia", f"No se pudo cargar el ícono: {e}")
     else:
-        messagebox.showwarning("Advertencia", "El ícono no se encontró en la ruta especificada.")
+        messagebox.showwarning(
+            "Advertencia", "El ícono no se encontró en la ruta especificada.")
 
     return root
 
@@ -119,7 +123,7 @@ excel_controller = ExcelController()
 # Botón para seleccionar archivo
 btn_select_file = tk.Button(
     root, text="Seleccionar Archivo",
-    command=lambda: select_file(app_state),
+    command=select_file,
     bg=BUTTON_BG_COLOR,
     fg=BUTTON_FG_COLOR,
     font=BUTTON_FONT,
