@@ -4,10 +4,16 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import webbrowser
 from application.excel_controller import ExcelController
-from config import IMAGE_PATH, WINDOW_WIDTH, WINDOW_HEIGHT, BUTTON_BG_COLOR, BUTTON_FG_COLOR, RESULT_FILE_PREFIX, EXCEL_EXTENSIONS
+from application.business_logic import get_latest_result_file, open_file_in_browser
+from config import IMAGE_PATH, WINDOW_WIDTH, WINDOW_HEIGHT, BUTTON_BG_COLOR, BUTTON_FG_COLOR, RESULT_FILE_PREFIX, EXCEL_EXTENSIONS, APP_TITLE, BUTTON_FONT, BUTTON_WIDTH, BUTTON_HEIGHT
 
-# Variable global para almacenar la ruta del archivo cargado
-loaded_file_directory = None
+
+class AppState:
+    def __init__(self):
+        self.loaded_file_directory = None
+
+
+app_state = AppState()
 
 
 def exit_app():
@@ -16,13 +22,13 @@ def exit_app():
 
 def open_latest_result():
     try:
-        if not loaded_file_directory:
+        if not app_state.loaded_file_directory:
             messagebox.showwarning(
                 "Advertencia", "No se ha seleccionado ningún archivo previamente")
             return
 
         # Filtrar archivos que comienzan con el prefijo y terminan con extensiones válidas
-        result_files = [f for f in os.listdir(loaded_file_directory)
+        result_files = [f for f in os.listdir(app_state.loaded_file_directory)
                         if f.startswith(RESULT_FILE_PREFIX) and f.endswith(tuple(EXCEL_EXTENSIONS))]
 
         if not result_files:
@@ -32,10 +38,11 @@ def open_latest_result():
 
         # Identificar el archivo más reciente por fecha de modificación
         latest_file = max(result_files, key=lambda f: os.path.getmtime(
-            os.path.join(loaded_file_directory, f)))
+            os.path.join(app_state.loaded_file_directory, f)))
 
         # Abrir el archivo utilizando el navegador por defecto asociado al SO
-        webbrowser.open(os.path.join(loaded_file_directory, latest_file))
+        webbrowser.open(os.path.join(
+            app_state.loaded_file_directory, latest_file))
         messagebox.showinfo("Éxito", f"Abriendo archivo: {latest_file}")
     except FileNotFoundError as e:
         messagebox.showerror("Error", f"Archivo no encontrado: {e}")
@@ -44,7 +51,6 @@ def open_latest_result():
 
 
 def select_file():
-    global loaded_file_directory
     file_path = filedialog.askopenfilename(
         title="Cancelación de Folios",
         filetypes=[("Archivos de Excel", "*.xlsx;*.xls")]
@@ -58,33 +64,46 @@ def select_file():
         messagebox.showerror("Error", "El archivo seleccionado no existe.")
         return
 
-    # Guardar la ruta del directorio del archivo seleccionado
-    loaded_file_directory = os.path.dirname(file_path)
-
-    # Llama al método process_file de ExcelController
+    app_state.loaded_file_directory = os.path.dirname(file_path)
     excel_controller.process_file(file_path, messagebox)
 
 
-# Crear la ventana principal
-root = tk.Tk()
-root.title("Cancelación de Folios")
-root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-root.configure(bg="#f0f0f0")
-root.resizable(False, False)
+def load_image(path, size=(200, 200)):
+    image = Image.open(path)
+    image = image.resize(size, Image.Resampling.LANCZOS)
+    return ImageTk.PhotoImage(image)
 
-# Centrar la ventana en pantalla
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-position_top = (screen_height // 2) - (WINDOW_HEIGHT // 2)
-position_right = (screen_width // 2) - (WINDOW_WIDTH // 2)
-root.geometry(
-    f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{position_right}+{position_top}")
+
+def create_main_window():
+    # Configura y devuelve la ventana principal de la aplicación.
+
+    root = tk.Tk()
+    root.title(APP_TITLE)
+    root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+    root.configure(bg="#f0f0f0")
+    root.resizable(False, False)
+
+    # Centrar la ventana en pantalla
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    position_top = (screen_height // 2) - (WINDOW_HEIGHT // 2)
+    position_right = (screen_width // 2) - (WINDOW_WIDTH // 2)
+    root.geometry(
+        f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{position_right}+{position_top}")
+
+    # Establecer el icono de la ventana
+    icon_path = os.path.join("sources", "favion.ico")
+    if os.path.exists(icon_path):
+        root.iconbitmap(icon_path)
+
+    return root
+
+
+# Crear la ventana principal
+root = create_main_window()
 
 # Cargar y mostrar el logo
-image = Image.open(IMAGE_PATH)
-image = image.resize((200, 200), Image.Resampling.LANCZOS)
-photo = ImageTk.PhotoImage(image)
-
+photo = load_image(IMAGE_PATH)
 label_image = tk.Label(root, image=photo)
 label_image.pack(pady=20)
 
@@ -97,9 +116,9 @@ btn_select_file = tk.Button(
     command=select_file,
     bg=BUTTON_BG_COLOR,
     fg=BUTTON_FG_COLOR,
-    font=("Arial", 12),
-    width=20,
-    height=2
+    font=BUTTON_FONT,
+    width=BUTTON_WIDTH,
+    height=BUTTON_HEIGHT
 )
 btn_select_file.pack(pady=10)
 
@@ -109,9 +128,9 @@ btn_open_result = tk.Button(
     command=open_latest_result,
     bg=BUTTON_BG_COLOR,
     fg=BUTTON_FG_COLOR,
-    font=("Arial", 12),
-    width=20,
-    height=2
+    font=BUTTON_FONT,
+    width=BUTTON_WIDTH,
+    height=BUTTON_HEIGHT
 )
 btn_open_result.pack(pady=10)
 
@@ -121,9 +140,9 @@ btn_exit = tk.Button(
     command=exit_app,
     bg=BUTTON_BG_COLOR,
     fg=BUTTON_FG_COLOR,
-    font=("Arial", 12),
-    width=20,
-    height=2
+    font=BUTTON_FONT,
+    width=BUTTON_WIDTH,
+    height=BUTTON_HEIGHT
 )
 btn_exit.pack(pady=10)
 

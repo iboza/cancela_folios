@@ -4,6 +4,10 @@ WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 500
 BUTTON_BG_COLOR = "#cc0000"
 BUTTON_FG_COLOR = "white"
+APP_TITLE = "Cancelación de Folios"
+BUTTON_FONT = ("Arial", 12)
+BUTTON_WIDTH = 20
+BUTTON_HEIGHT = 2
 
 # Configuración de base de datos
 DB_HOST = "localhost"

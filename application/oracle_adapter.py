@@ -1,15 +1,25 @@
+import os
 import logging
 from domain.database_port import DatabasePort
 from infrastructure.oracle_service import OracleService
 
+
+# Establecer la ruta para los logs
+log_directory = "c:\\logs_python\\cancela_folios\\"
+os.makedirs(log_directory, exist_ok=True)  # Crear el directorio si no   existe
+log_file_path = os.path.join(log_directory, "cancela_folios.log")
+
 # Configurar el logger para sobrescribir el archivo en cada  ejecucion
 logging.basicConfig(
-    filename="oracle_adapter.log",  # Nombre del archivo de log
+    filename=log_file_path,  # Nombre del archivo de log
     filemode="w",                  # 'w' asegura que se sobrescriba en cada ejecucion
     level=logging.INFO,             # Nivel de log minimo
     # formato  del log
     format="%(asctime)a - %(name)s  - %(levelname)s - %(message)s"
 )
+
+logging.basicConfig(level=logging.ERROR, filename="cancela_folios_errors.log", filemode="a",
+                    format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class OracleAdapter(DatabasePort):
@@ -110,3 +120,14 @@ class OracleAdapter(DatabasePort):
         if exc_type or exc_val or exc_tb:
             self.logger.error("Error durante el bloque 'WITH':",
                               exc_info=(exc_type, exc_val, exc_tb))
+
+
+def open_latest_result():
+    try:
+        # Lógica existente...
+    except FileNotFoundError as e:
+        logging.error(f"Archivo no encontrado: {e}")
+        messagebox.showerror("Error", f"Archivo no encontrado: {e}")
+    except Exception as e:
+        logging.error(f"Error inesperado: {e}")
+        messagebox.showerror("Error", f"Error inesperado: {e}")
