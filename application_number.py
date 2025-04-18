@@ -4,7 +4,6 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import webbrowser
 from application.excel_controller import ExcelController
-from application.business_logic import get_latest_result_file, open_file_in_browser
 from config import IMAGE_PATH, WINDOW_WIDTH, WINDOW_HEIGHT, BUTTON_BG_COLOR, BUTTON_FG_COLOR, RESULT_FILE_PREFIX, EXCEL_EXTENSIONS, APP_TITLE, BUTTON_FONT, BUTTON_WIDTH, BUTTON_HEIGHT
 
 
@@ -21,28 +20,23 @@ def exit_app():
 
 
 def open_latest_result():
+    if not app_state.loaded_file_directory or not os.path.isdir(app_state.loaded_file_directory):
+        messagebox.showwarning(
+            "Advertencia", "No se ha seleccionado ningún archivo previamente")
+        return
+
+    result_files = [f for f in os.listdir(app_state.loaded_file_directory)
+                    if f.startswith(RESULT_FILE_PREFIX) and f.endswith(tuple(EXCEL_EXTENSIONS))]
+
+    if not result_files:
+        messagebox.showwarning(
+            "Advertencia", "No se encontró ningún archivo de resultados.")
+        return
+
     try:
-        if not app_state.loaded_file_directory:
-            messagebox.showwarning(
-                "Advertencia", "No se ha seleccionado ningún archivo previamente")
-            return
-
-        # Filtrar archivos que comienzan con el prefijo y terminan con extensiones válidas
-        result_files = [f for f in os.listdir(app_state.loaded_file_directory)
-                        if f.startswith(RESULT_FILE_PREFIX) and f.endswith(tuple(EXCEL_EXTENSIONS))]
-
-        if not result_files:
-            messagebox.showwarning(
-                "Advertencia", "No se encontró ningún archivo de resultados.")
-            return
-
-        # Identificar el archivo más reciente por fecha de modificación
         latest_file = max(result_files, key=lambda f: os.path.getmtime(
             os.path.join(app_state.loaded_file_directory, f)))
-
-        # Abrir el archivo utilizando el navegador por defecto asociado al SO
-        webbrowser.open(os.path.join(
-            app_state.loaded_file_directory, latest_file))
+        webbrowser.open(os.path.join(app_state.loaded_file_directory, latest_file))
         messagebox.showinfo("Éxito", f"Abriendo archivo: {latest_file}")
     except FileNotFoundError as e:
         messagebox.showerror("Error", f"Archivo no encontrado: {e}")
@@ -52,12 +46,11 @@ def open_latest_result():
 
 def select_file():
     file_path = filedialog.askopenfilename(
-        title="Cancelación de Folios",
+        title=APP_TITLE,
         filetypes=[("Archivos de Excel", "*.xlsx;*.xls")]
     )
     if not file_path:
-        messagebox.showwarning(
-            "Advertencia", "No se seleccionó ningún archivo.")
+        messagebox.showwarning("Advertencia", "No se seleccionó ningún archivo.")
         return
 
     if not os.path.exists(file_path):
@@ -65,13 +58,20 @@ def select_file():
         return
 
     app_state.loaded_file_directory = os.path.dirname(file_path)
-    excel_controller.process_file(file_path, messagebox)
+    try:
+        excel_controller.process_file(file_path, messagebox)
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al procesar el archivo: {e}")
 
 
 def load_image(path, size=(200, 200)):
-    image = Image.open(path)
-    image = image.resize(size, Image.Resampling.LANCZOS)
-    return ImageTk.PhotoImage(image)
+    try:
+        image = Image.open(path)
+        image = image.resize(size, Image.LANCZOS)
+        return ImageTk.PhotoImage(image)
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo cargar la imagen: {e}")
+        return None
 
 
 def create_main_window():
@@ -94,7 +94,12 @@ def create_main_window():
     # Establecer el icono de la ventana
     icon_path = os.path.join("sources", "favion.ico")
     if os.path.exists(icon_path):
-        root.iconbitmap(icon_path)
+        try:
+            root.iconbitmap(icon_path)
+        except Exception as e:
+            messagebox.showwarning("Advertencia", f"No se pudo cargar el ícono: {e}")
+    else:
+        messagebox.showwarning("Advertencia", "El ícono no se encontró en la ruta especificada.")
 
     return root
 
@@ -104,8 +109,9 @@ root = create_main_window()
 
 # Cargar y mostrar el logo
 photo = load_image(IMAGE_PATH)
-label_image = tk.Label(root, image=photo)
-label_image.pack(pady=20)
+if photo:
+    label_image = tk.Label(root, image=photo)
+    label_image.pack(pady=20)
 
 # Crear una instancia de ExcelController
 excel_controller = ExcelController()
@@ -113,7 +119,7 @@ excel_controller = ExcelController()
 # Botón para seleccionar archivo
 btn_select_file = tk.Button(
     root, text="Seleccionar Archivo",
-    command=select_file,
+    command=lambda: select_file(app_state),
     bg=BUTTON_BG_COLOR,
     fg=BUTTON_FG_COLOR,
     font=BUTTON_FONT,

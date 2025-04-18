@@ -18,18 +18,9 @@ logging.basicConfig(
     format="%(asctime)a - %(name)s  - %(levelname)s - %(message)s"
 )
 
-logging.basicConfig(level=logging.ERROR, filename="cancela_folios_errors.log", filemode="a",
-                    format="%(asctime)s - %(levelname)s - %(message)s")
-
 
 class OracleAdapter(DatabasePort):
     def __init__(self):
-        self.oracle_service = OracleService()
-        self.logger = logging.getLogger(__name__)  # Configuracion de logger
-
-
-class OracleAdapter(DatabasePort):
-    def __init(self):
         self.oracle_service = OracleService()
         self.logger = logging.getLogger(__name__)  # Configuracion de logger
 
@@ -124,7 +115,7 @@ class OracleAdapter(DatabasePort):
 
 def open_latest_result():
     try:
-        # Lógica existente...
+        logging.info("Abriendo el último resultado...")
     except FileNotFoundError as e:
         logging.error(f"Archivo no encontrado: {e}")
         messagebox.showerror("Error", f"Archivo no encontrado: {e}")
