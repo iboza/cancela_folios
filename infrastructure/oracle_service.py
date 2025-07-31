@@ -1,5 +1,9 @@
+import time
 import oracledb
-from config import DB_HOST, DB_PORT, DB_SERVICE_NAME, DB_USER, DB_PASSWORD
+from config import (
+    DB_HOST, DB_PORT, DB_SERVICE_NAME, DB_USER, DB_PASSWORD,
+    MAX_RETRIES, RETRY_DELAY
+)
 
 
 class OracleService:
@@ -7,49 +11,63 @@ class OracleService:
         self.connection = None
 
     def connect(self):
-        try:
-            # Usar las constantes definidas en config.py
-            dsn = f"{DB_HOST}:{DB_PORT}/{DB_SERVICE_NAME}"
-            self.connection = oracledb.connect(
-                user=DB_USER, password=DB_PASSWORD, dsn=dsn
-            )
-            print("Connected to Oracle Database")
-        except Exception as e:
-            print(f"Failed to connect to Oracle Database: {e}")
-            raise
+        dsn = f"{DB_HOST}:{DB_PORT}/{DB_SERVICE_NAME}"
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                self.connection = oracledb.connect(
+                    user=DB_USER, password=DB_PASSWORD, dsn=dsn
+                )
+                print("Connected to Oracle Database")
+                return
+            except Exception as e:
+                print(f"Failed to connect (attempt {attempt}): {e}")
+                self.connection = None
+                if attempt < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
+        raise Exception("Could not connect to Oracle Database after retries.")
 
     def disconnect(self):
         if self.connection:
-            self.connection.close()
-            print("Disconnected from Oracle Database")
+            try:
+                self.connection.close()
+                print("Disconnected from Oracle Database")
+            finally:
+                self.connection = None
+
+    def is_connection_alive(self):
+        try:
+            if self.connection:
+                self.connection.ping()
+                return True
+        except Exception:
+            return False
+        return False
+
+    def ensure_connection(self):
+        if self.connection is None or not self.is_connection_alive():
+            print("Reconnecting to Oracle Database...")
+            self.connect()
 
     def execute_query(self, query, params=None):
-        # Ejecuta consultas que devuelven filas (SELECT)
-        if not self.connection:
-            raise Exception("No active database connection")
+        self.ensure_connection()
         with self.connection.cursor() as cursor:
             cursor.execute(query, params or {})
             return cursor.fetchall()
 
     def execute_non_query(self, query, params=None):
-        # Ejecuta consultas que no devuelven filas (UPDATE, INSERT, DELETE)
-        if not self.connection:
-            raise Exception("No active database connection")
+        self.ensure_connection()
         with self.connection.cursor() as cursor:
             cursor.execute(query, params or {})
-            self.connection.commit()  # Confirmar los cambios
+        self.connection.commit()
 
     def start_transaction(self):
-        if not self.connection:
-            raise Exception("No active database connection")
+        self.ensure_connection()
         self.connection.begin()
 
     def commit(self):
-        if not self.connection:
-            raise Exception("No active database connection")
+        self.ensure_connection()
         self.connection.commit()
 
     def rollback(self):
-        if not self.connection:
-            raise Exception("No active database connection")
+        self.ensure_connection()
         self.connection.rollback()

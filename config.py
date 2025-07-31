@@ -19,3 +19,6 @@ DB_PASSWORD = "admin123"
 # Configuración de archivos
 RESULT_FILE_PREFIX = "RESULTADOS_"
 EXCEL_EXTENSIONS = [".xlsx", ".xls"]
+
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # segundos
